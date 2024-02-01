@@ -109,6 +109,9 @@ int main(int, char**)
     int show_form_status = 0;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     const size_t buf_size = 50;
+    std::vector<char*> doctors = {"Doctor 1", "Doctor 2", "Doctor 3"};
+    std::vector<char*> selected_doctors;
+    int cur_doc = -1, cur_doc_s = -1;
     char patient_name[buf_size], patient_description[buf_size], patient_age[buf_size], patient_ph_no[buf_size];
     strcpy(patient_description, "\0");
     strcpy(patient_name, "\0");
@@ -137,16 +140,38 @@ int main(int, char**)
         ImGui::InputText("Name", patient_name, buf_size);
         ImGui::InputText("Age", patient_age, buf_size);
         ImGui::InputText("Ph no", patient_ph_no, buf_size);
+        char** doctor_items =  doctors.data();
+        char** doctor_s_items =  selected_doctors.data();
+        ImGui::ListBox("Doctors", &cur_doc, doctor_items, doctors.size());
+        ImGui::ListBox("Selected Doctors", &cur_doc_s, doctor_s_items, selected_doctors.size());
+          /* std::printf("Cur item: %d\n", cur_doc); */
+        if (cur_doc != -1) {
+          selected_doctors.push_back(*(doctors.begin() + cur_doc));
+          auto deleted = doctors.erase(doctors.begin() + cur_doc);
+          cur_doc = -1;
+        }
+        if (cur_doc_s != -1) {
+          doctors.push_back(*(selected_doctors.begin() + cur_doc_s));
+          auto deleted = selected_doctors.erase(selected_doctors.begin() + cur_doc_s);
+          cur_doc_s = -1;
+        }
         ImGui::InputTextMultiline("Description", patient_description, buf_size);
         if (ImGui::Button("Submit")) {
+          std::printf("Cur item: %d\n", cur_doc);
           if (strlen(patient_name) > 0 && strlen(patient_age) > 0 && strlen(patient_ph_no) > 0 && strlen(patient_description) > 0) {
             input_file.open("patients.csv");
             output_file.open("patients.csv", std::ios_base::app);
             char first_char;
             if (input_file.peek() == std::ifstream::traits_type::eof()) {
-              output_file << "Name, Age, Ph.no, Description\n";
+              output_file << "Name, Age, Ph.no, Description, Doctors\n";
             }
-            output_file << patient_name << ", " << patient_age << ", " << patient_ph_no << ", " << patient_description << "\n";
+            output_file << patient_name << ", " << patient_age << ", " << patient_ph_no << ", " << patient_description << ", ";
+            output_file << "\"";
+            for (char* d: selected_doctors) {
+              output_file << d <<  ", ";
+            }
+            output_file << "\b\b";
+            output_file << "\"";
             output_file.close();
             input_file.close();
             std::printf("Written patient info to patients.csv\n");
